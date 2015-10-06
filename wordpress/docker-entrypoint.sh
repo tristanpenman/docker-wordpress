@@ -93,12 +93,12 @@ function parse_environment_variables() {
 # Wait up to 20 seconds for MySQL to become available
 #
 function wait_for_mysql() (
-	host=${db_host:-localhost}
+	local host=${db_host:-localhost}
 	echo "Waiting for MySQL to become available on $host..."
 
-	timeout=20
+	local timeout=20
 	while [ $timeout -gt 0 ]; do
-		response=`mysqladmin --host=$host --user=UNKNOWN_MYSQL_USER ping 2>&1` && break
+		local response=`mysqladmin --host=$host --user=UNKNOWN_MYSQL_USER ping 2>&1` && break
 		echo "$response" | grep -q "Access denied for user" && break
 		sleep 1
 		let timeout=${timeout}-1
@@ -124,9 +124,9 @@ function set_php_constant() (
 	function php_escape() {
 		php -r 'var_export((string) $argv[1]);' "$1"
 	}
-	key="$1"
-	value="$2"
-	regex="(['\"])$(sed_escape_lhs "$key")\2\s*,"
+	local key="$1"
+	local value="$2"
+	local regex="(['\"])$(sed_escape_lhs "$key")\2\s*,"
 	if [ "${key:0:1}" = '$' ]; then
 		regex="^(\s*)$(sed_escape_lhs "$key")\s*="
 	fi
@@ -171,7 +171,7 @@ function update_database_config() (
 # constants in wp-config.php.
 #
 function create_config_file() (
-	wp_core_config_args="--dbname=$db_name"
+	local wp_core_config_args="--dbname=$db_name"
 	if ! [ -z "$db_user" ]; then
 		wp_core_config_args="$wp_core_config_args --dbuser=$db_user"
 	fi
@@ -187,9 +187,9 @@ function create_config_file() (
 
 	shopt -s nocasematch;
 
-	wp_debug=
-	wp_debug_display=
-	wp_debug_log=
+	local wp_debug=
+	local wp_debug_display=
+	local wp_debug_log=
 
 	if [[ "$WP_DEBUG" =~ ^on|y|yes|1|t|true|enabled$ ]]; then
 		wp_debug="define( 'WP_DEBUG', true );"
@@ -220,7 +220,7 @@ function create_config_file() (
 # regenerated automatically.
 #
 function update_other_config() (
-	UNIQUES=(
+	local uniques=(
 		AUTH_KEY
 		SECURE_AUTH_KEY
 		LOGGED_IN_KEY
@@ -230,13 +230,13 @@ function update_other_config() (
 		LOGGED_IN_SALT
 		NONCE_SALT
 	)
-	for unique in "${UNIQUES[@]}"; do
-		eval unique_value=\${WORDPRESS_$unique:-}
+	for unique in "${uniques[@]}"; do
+		eval local unique_value=\${WORDPRESS_$unique:-}
 		if [ "$unique_value" ]; then
 			set_php_constant "$unique" "$unique_value"
 		else
 			# if not specified, let's generate a random value
-			current_set="$(sed -rn "s/define\((([\'\"])$unique\2\s*,\s*)(['\"])(.*)\3\);/\4/p" wp-config.php)"
+			local current_set="$(sed -rn "s/define\((([\'\"])$unique\2\s*,\s*)(['\"])(.*)\3\);/\4/p" wp-config.php)"
 			if [ "$current_set" == 'put your unique phrase here' ]; then
 				set_php_constant "$unique" "$(head -c1M /dev/urandom | sha1sum | cut -d' ' -f1)"
 			fi
