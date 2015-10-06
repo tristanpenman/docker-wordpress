@@ -1,8 +1,37 @@
 #!/bin/bash
-set -e
 
+set -e   # (errexit) Exit if any subcommand or pipeline returns a non-zero status
+set -u   # (nounset) Exit on any attempt to use an uninitialised variable
+
+# Alias for WP-cli to include arguments that we want to use everywhere
 shopt -s expand_aliases
 alias wp="wp --path=/var/www/html --allow-root"
+
+# Environment variables that might have been set manually by user
+: ${WORDPRESS_DB_NAME:=}
+: ${WORDPRESS_DB_USER:=}
+: ${WORDPRESS_DB_PASSWORD:=}
+: ${WORDPRESS_DB_HOST:=}
+: ${WORDPRESS_DB_PORT:=}
+: ${WORDPRESS_DB_TABLE_PREFIX:=}
+
+# Environment variables that might be set when linking to a MySQL container
+: ${MYSQL_ENV_MYSQL_USER:=}
+: ${MYSQL_ENV_MYSQL_PASSWORD:=}
+: ${MYSQL_ENV_MYSQL_DATABASE:=}
+: ${MYSQL_PORT_3306_TCP_ADDR:=}
+: ${MYSQL_PORT_3306_TCP_PORT:=}
+
+# Optional environment variables to toggle debug modes
+: ${WP_DEBUG:=}
+: ${WP_DEBUG_DISPLAY:=}
+: ${WP_DEBUG_LOG:=}
+
+# Internal variables used to pass DB config between functions
+db_name=
+db_user=
+db_pass=
+db_pass_source=
 
 #
 # Extract database configuration from environment variables
@@ -158,6 +187,10 @@ function create_config_file() (
 
 	shopt -s nocasematch;
 
+	wp_debug=
+	wp_debug_display=
+	wp_debug_log=
+
 	if [[ "$WP_DEBUG" =~ ^on|y|yes|1|t|true|enabled$ ]]; then
 		wp_debug="define( 'WP_DEBUG', true );"
 		if ! [ -z "$WP_DEBUG_DISPLAY" ] && ! [[ "$WP_DEBUG_DISPLAY" =~ ^on|y|yes|1|t|true|enabled$ ]]; then
@@ -198,20 +231,20 @@ function update_other_config() (
 		NONCE_SALT
 	)
 	for unique in "${UNIQUES[@]}"; do
-		eval unique_value=\$WORDPRESS_$unique
+		eval unique_value=\${WORDPRESS_$unique:-}
 		if [ "$unique_value" ]; then
 			set_php_constant "$unique" "$unique_value"
 		else
 			# if not specified, let's generate a random value
 			current_set="$(sed -rn "s/define\((([\'\"])$unique\2\s*,\s*)(['\"])(.*)\3\);/\4/p" wp-config.php)"
-			if [ "$current_set" = 'put your unique phrase here' ]; then
+			if [ "$current_set" == 'put your unique phrase here' ]; then
 				set_php_constant "$unique" "$(head -c1M /dev/urandom | sha1sum | cut -d' ' -f1)"
 			fi
 		fi
 	done
 
-	if [ "$WORDPRESS_TABLE_PREFIX" ]; then
-		set_php_constant '$table_prefix' "$WORDPRESS_TABLE_PREFIX"
+	if [ "$WORDPRESS_DB_TABLE_PREFIX" ]; then
+		set_php_constant '$table_prefix' "$WORDPRESS_DB_TABLE_PREFIX"
 	fi
 )
 
@@ -240,6 +273,7 @@ update_other_config
 if [ -d /entrypoint.d ]; then
 	for SCRIPT in /entrypoint.d/*
 	do
+		# $SCRIPT should contain a full path to a file in /entrypoint.d
 		if [ -f $SCRIPT -a -x $SCRIPT ]
 		then
 			$SCRIPT
