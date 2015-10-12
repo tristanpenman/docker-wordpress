@@ -3,9 +3,19 @@
 set -e   # (errexit) Exit if any subcommand or pipeline returns a non-zero status
 set -u   # (nounset) Exit on any attempt to use an uninitialised variable
 
+# Allow Dockerfile to override default document root, if necessary
+: ${DOCUMENT_ROOT:=/var/www/html}
+
+# Trim trailing slash
+if [ "$DOCUMENT_ROOT" != "/" ]; then
+	DOCUMENT_ROOT=${DOCUMENT_ROOT%/}
+fi
+
+echo "Using document root: $DOCUMENT_ROOT"
+
 # Alias for WP-cli to include arguments that we want to use everywhere
 shopt -s expand_aliases
-alias wp="wp --path=/var/www/html --allow-root"
+alias wp="wp --path=$DOCUMENT_ROOT --allow-root"
 
 # Environment variables that might have been set manually by user
 : ${WORDPRESS_DB_NAME:=}
@@ -32,6 +42,9 @@ db_name=
 db_user=
 db_pass=
 db_pass_source=
+
+# Path to WordPress configuration
+config_path=${DOCUMENT_ROOT}/wp-config.php
 
 #
 # Extract database configuration from environment variables
@@ -130,7 +143,7 @@ function set_php_constant() (
 	if [ "${key:0:1}" = '$' ]; then
 		regex="^(\s*)$(sed_escape_lhs "$key")\s*="
 	fi
-	sed -ri "s/($regex\s*)(['\"]).*\3/\1$(sed_escape_rhs "$(php_escape "$value")")/" wp-config.php
+	sed -ri "s/($regex\s*)(['\"]).*\3/\1$(sed_escape_rhs "$(php_escape "$value")")/" $config_path
 )
 
 #
@@ -236,7 +249,7 @@ function update_other_config() (
 			set_php_constant "$unique" "$unique_value"
 		else
 			# if not specified, let's generate a random value
-			local current_set="$(sed -rn "s/define\((([\'\"])$unique\2\s*,\s*)(['\"])(.*)\3\);/\4/p" wp-config.php)"
+			local current_set="$(sed -rn "s/define\((([\'\"])$unique\2\s*,\s*)(['\"])(.*)\3\);/\4/p" $config_path)"
 			if [ "$current_set" == 'put your unique phrase here' ]; then
 				set_php_constant "$unique" "$(head -c1M /dev/urandom | sha1sum | cut -d' ' -f1)"
 			fi
@@ -250,20 +263,20 @@ function update_other_config() (
 
 parse_environment_variables
 
-if ! [ -f /var/www/html/index.php -a -f /var/www/html/wp-includes/version.php ]; then
-	echo "WordPress not present in /var/www/html."
+if ! [ -f ${DOCUMENT_ROOT}/index.php -a -f ${DOCUMENT_ROOT}/wp-includes/version.php ]; then
+	echo "WordPress not present in ${DOCUMENT_ROOT}."
 	wp core download --version=${WORDPRESS_VERSION:-latest}
 fi
 
 wait_for_mysql
 
-if [ -f /var/www/html/wp-config.php ]; then
-	echo "File /var/www/html/wp-config.php exists."
-	echo "Updating database configuration in /var/www/html/wp-config.php..."
+if [ -f $config_path ]; then
+	echo "File $config_path exists."
+	echo "Updating database configuration in ${config_path}..."
 	update_database_config
 else
-	echo "File /var/www/html/wp-config.php does not exist."
-	echo "Creating new /var/www/html/wp-config.php using wp-cli..."
+	echo "File $config_path does not exist."
+	echo "Creating new $config_path using wp-cli..."
 	create_config_file
 fi
 
