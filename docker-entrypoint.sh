@@ -40,6 +40,8 @@ alias wp="wp --path=$DOCUMENT_ROOT --allow-root"
 # Internal variables used to pass DB config between functions
 db_name=
 db_user=
+db_host=
+db_port=
 db_pass=
 db_pass_source=
 
@@ -282,13 +284,30 @@ fi
 
 update_other_config
 
+export DB_DRIVER=mysql
+export DB_NAME=$db_name
+export DB_HOST=$db_host
+export DB_PORT=$db_port
+export DB_USER=$db_user
+export DB_PASS=$db_pass
+
+echo "Database configuration (available to entrypoint scripts via environment variables):"
+echo "  Database driver    (DB_DRIVER):  $DB_DRIVER"
+echo "  Database name      (DB_NAME):    $DB_NAME"
+echo "  Database host      (DB_HOST):    $DB_HOST"
+echo "  Database port      (DB_PORT):    $DB_PORT"
+echo "  Database username  (DB_USER):    $DB_USER"
+echo "  Database password  (DB_PASS):    ** not shown **"
+
 # Run any post-install scripts located in /entrypoint.d
 if [ -d /entrypoint.d ]; then
+	echo "Running installation scripts located in /entrypoint.d..."
 	for SCRIPT in /entrypoint.d/*
 	do
 		# $SCRIPT should contain a full path to a file in /entrypoint.d
 		if [ -f $SCRIPT -a -x $SCRIPT ]
 		then
+			echo "Running ${SCRIPT}..."
 			$SCRIPT
 		fi
 	done
