@@ -11,6 +11,8 @@ if [ "$DOCUMENT_ROOT" != "/" ]; then
 	DOCUMENT_ROOT=${DOCUMENT_ROOT%/}
 fi
 
+export DOCUMENT_ROOT
+
 echo "Using document root: $DOCUMENT_ROOT"
 
 # Alias for WP-cli to include arguments that we want to use everywhere
@@ -47,6 +49,10 @@ db_pass_source=
 
 # Path to WordPress configuration
 config_path=${DOCUMENT_ROOT}/wp-config.php
+
+# Paths to additional installation scripts
+preinstall_scripts_dir=/scripts/pre-install.d
+postinstall_scripts_dir=/scripts/post-install.d
 
 #
 # Extract database configuration from environment variables
@@ -263,26 +269,47 @@ function update_other_config() (
 	fi
 )
 
+function run_preinstall_scripts() {
+	echo "Checking for pre-installation scripts directory (${preinstall_scripts_dir})..."
+	if [ -d ${preinstall_scripts_dir} ]; then
+		echo "Running pre-installation scripts..."
+		local script=
+		for script in ${preinstall_scripts_dir}/*
+		do
+			if [ -f $script ]; then
+				if [ -a $script ]; then
+					echo "Running ${script}..."
+					$script
+				else
+					echo "Skipping ${script} as it is not executable."
+				fi
+			fi
+		done
+	fi
+}
+
+function run_postinstall_scripts() {
+	echo "Checking for post-installation scripts directory (${postinstall_scripts_dir})..."
+	if [ -d ${postinstall_scripts_dir} ]; then
+		echo "Running post-installation scripts..."
+		local script=
+		for script in ${postinstall_scripts_dir}/*
+		do
+			if [ -f $script ]; then
+				if [ -a $script ]; then
+					echo "Running ${script}..."
+					$script
+				else
+					echo "Skipping ${script} as it is not executable."
+				fi
+			fi
+		done
+	fi
+}
+
 parse_environment_variables
 
-if ! [ -f ${DOCUMENT_ROOT}/index.php -a -f ${DOCUMENT_ROOT}/wp-includes/version.php ]; then
-	echo "WordPress not present in ${DOCUMENT_ROOT}."
-	wp core download --version=${WORDPRESS_VERSION:-latest}
-fi
-
 wait_for_mysql
-
-if [ -f $config_path ]; then
-	echo "File $config_path exists."
-	echo "Updating database configuration in ${config_path}..."
-	update_database_config
-else
-	echo "File $config_path does not exist."
-	echo "Creating new $config_path using wp-cli..."
-	create_config_file
-fi
-
-update_other_config
 
 export DB_DRIVER=mysql
 export DB_NAME=$db_name
@@ -299,19 +326,26 @@ echo "  Database port      (DB_PORT):    $DB_PORT"
 echo "  Database username  (DB_USER):    $DB_USER"
 echo "  Database password  (DB_PASS):    ** not shown **"
 
-# Run any post-install scripts located in /entrypoint.d
-if [ -d /entrypoint.d ]; then
-	echo "Running installation scripts located in /entrypoint.d..."
-	for SCRIPT in /entrypoint.d/*
-	do
-		# $SCRIPT should contain a full path to a file in /entrypoint.d
-		if [ -f $SCRIPT -a -x $SCRIPT ]
-		then
-			echo "Running ${SCRIPT}..."
-			$SCRIPT
-		fi
-	done
+run_preinstall_scripts
+
+if ! [ -f ${DOCUMENT_ROOT}/index.php -a -f ${DOCUMENT_ROOT}/wp-includes/version.php ]; then
+	echo "WordPress not present in ${DOCUMENT_ROOT}."
+	wp core download --version=${WORDPRESS_VERSION:-latest}
 fi
+
+if [ -f $config_path ]; then
+	echo "File $config_path exists."
+	echo "Updating database configuration in ${config_path}..."
+	update_database_config
+else
+	echo "File $config_path does not exist."
+	echo "Creating new $config_path using wp-cli..."
+	create_config_file
+fi
+
+update_other_config
+
+run_postinstall_scripts
 
 # Pass through arguments to exec
 if [ $# -ge 1 ]; then

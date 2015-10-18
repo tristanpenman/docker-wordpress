@@ -19,7 +19,8 @@ RUN chmod +x /usr/local/bin/wp
 # Set up entrypoint script
 COPY docker-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
-RUN mkdir /entrypoint.d
+RUN mkdir -p /scripts/pre-install.d
+RUN mkdir /scripts/post-install.d
 ENTRYPOINT ["/entrypoint.sh"]
 
 CMD ["apache2-foreground"]
