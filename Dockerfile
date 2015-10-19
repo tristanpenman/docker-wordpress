@@ -17,10 +17,11 @@ RUN curl -L https://github.com/wp-cli/wp-cli/releases/download/v0.20.1/wp-cli-0.
 RUN chmod +x /usr/local/bin/wp
 
 # Set up entrypoint script
-COPY docker-entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-RUN mkdir -p /scripts/pre-install.d
-RUN mkdir /scripts/post-install.d
-ENTRYPOINT ["/entrypoint.sh"]
+ENV SCRIPTS_DIR /scripts
+RUN mkdir /scripts
+COPY docker-entrypoint.sh /scripts/entrypoint.sh
+RUN chmod +x /scripts/entrypoint.sh
+RUN mkdir /scripts/pre-install.d /scripts/post-install.d
+ENTRYPOINT ["/scripts/entrypoint.sh"]
 
 CMD ["apache2-foreground"]

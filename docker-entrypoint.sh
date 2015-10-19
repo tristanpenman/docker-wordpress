@@ -5,15 +5,15 @@ set -u   # (nounset) Exit on any attempt to use an uninitialised variable
 
 # Allow Dockerfile to override default document root, if necessary
 : ${DOCUMENT_ROOT:=/var/www/html}
-
-# Trim trailing slash
 if [ "$DOCUMENT_ROOT" != "/" ]; then
-	DOCUMENT_ROOT=${DOCUMENT_ROOT%/}
+	DOCUMENT_ROOT=${DOCUMENT_ROOT%/}    # Trim trailing slash
 fi
 
-export DOCUMENT_ROOT
-
-echo "Using document root: $DOCUMENT_ROOT"
+# Allow Dockerfile to override default scripts directory
+: ${SCRIPTS_DIR:=/scripts}
+if [ "$SCRIPTS_DIR" ~= "/" ]; then
+	SCRIPTS_DIR=${SCRIPTS_DIR%/}        # Trim trailing slash
+fi
 
 # Alias for WP-cli to include arguments that we want to use everywhere
 shopt -s expand_aliases
@@ -51,8 +51,8 @@ db_pass_source=
 config_path=${DOCUMENT_ROOT}/wp-config.php
 
 # Paths to additional installation scripts
-preinstall_scripts_dir=/scripts/pre-install.d
-postinstall_scripts_dir=/scripts/post-install.d
+preinstall_scripts_dir=${SCRIPTS}/pre-install.d
+postinstall_scripts_dir=${SCRIPTS}/post-install.d
 
 #
 # Extract database configuration from environment variables
@@ -269,6 +269,11 @@ function update_other_config() (
 	fi
 )
 
+#
+# Run any executable files found in the pre-installation scripts directory
+#
+# The directory to search is defined by the preinstall_script_dirs environment variable.
+#
 function run_preinstall_scripts() {
 	echo "Checking for pre-installation scripts directory (${preinstall_scripts_dir})..."
 	if [ -d ${preinstall_scripts_dir} ]; then
@@ -288,6 +293,11 @@ function run_preinstall_scripts() {
 	fi
 }
 
+#
+# Run any executable files found in the post-installation scripts directory
+#
+# The directory to search is defined by the postinstall_script_dirs environment variable.
+#
 function run_postinstall_scripts() {
 	echo "Checking for post-installation scripts directory (${postinstall_scripts_dir})..."
 	if [ -d ${postinstall_scripts_dir} ]; then
@@ -318,13 +328,20 @@ export DB_PORT=$db_port
 export DB_USER=$db_user
 export DB_PASS=$db_pass
 
-echo "Database configuration (available to entrypoint scripts via environment variables):"
+echo "Using database configuration:"
 echo "  Database driver    (DB_DRIVER):  $DB_DRIVER"
 echo "  Database name      (DB_NAME):    $DB_NAME"
 echo "  Database host      (DB_HOST):    $DB_HOST"
 echo "  Database port      (DB_PORT):    $DB_PORT"
 echo "  Database username  (DB_USER):    $DB_USER"
 echo "  Database password  (DB_PASS):    ** not shown **"
+
+export DOCUMENT_ROOT
+export SCRIPTS_DIR
+
+echo "Other configuration:"
+echo "  Document root      (DOCUMENT_ROOT): $DOCUMENT_ROOT"
+echo "  Scripts directory  (SCRIPTS_DIR):   $SCRIPTS_DIR"
 
 run_preinstall_scripts
 
