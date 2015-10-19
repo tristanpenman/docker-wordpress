@@ -57,6 +57,23 @@ When not relying on Docker's linked container functionality, you can use the fol
  * `WORDPRESS_DB_PASSWORD` (optional; default is 'wordpress')
  * `WORDPRESS_DB_TABLE_PREFIX` (optional)
 
+If you link your container to an official Docker MySQL container, then the following environment variables will be used as a fallback:
+
+ * MYSQL_PORT_3306_TCP_ADDR
+ * MYSQL_PORT_3306_TCP_PORT
+ * MYSQL_ENV_MYSQL_DATABASE
+ * MYSQL_ENV_MYSQL_USER
+ * MYSQL_ENV_MYSQL_PASSWORD
+
+After parsing the environment, the final configuration will be exported via the following environment variables:
+
+ * `DB_DRIVER`
+ * `DB_NAME`
+ * `DB_HOST`
+ * `DB_PORT`
+ * `DB_USER`
+ * `DB_PASS`
+
 ## Debug Configuration ##
 
 In addition to database configuration, you can also enable WordPress debug logging using the following environment variables:
@@ -96,15 +113,6 @@ As an example, a post-install script could install a WordPress plugin such as Wo
 ### Environment Variables ###
 
 Note that in the example above, the `DOCUMENT_ROOT` environment variable is used to refer to the location of the WordPress installation.
-
-The other environment variables that are exported to pre- and post-install scripts are:
-  
- * `DB_DRIVER`
- * `DB_NAME`
- * `DB_HOST`
- * `DB_PORT`
- * `DB_USER`
- * `DB_PASS`
 
 ## Docker Compose ##
 
