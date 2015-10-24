@@ -11,7 +11,7 @@ fi
 
 # Allow Dockerfile to override default scripts directory
 : ${SCRIPTS_DIR:=/scripts}
-if [ "$SCRIPTS_DIR" ~= "/" ]; then
+if [ "$SCRIPTS_DIR" != "/" ]; then
 	SCRIPTS_DIR=${SCRIPTS_DIR%/}        # Trim trailing slash
 fi
 
@@ -51,8 +51,8 @@ db_pass_source=
 config_path=${DOCUMENT_ROOT}/wp-config.php
 
 # Paths to additional installation scripts
-preinstall_scripts_dir=${SCRIPTS}/pre-install.d
-postinstall_scripts_dir=${SCRIPTS}/post-install.d
+preinstall_scripts_dir=${SCRIPTS_DIR}/pre-install.d
+postinstall_scripts_dir=${SCRIPTS_DIR}/post-install.d
 
 #
 # Extract database configuration from environment variables
