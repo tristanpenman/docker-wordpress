@@ -101,6 +101,8 @@ function parse_environment_variables() {
 		if ! [ -z "$MYSQL_PORT_3306_TCP_PORT" ]; then
 			db_port=$MYSQL_PORT_3306_TCP_PORT
 		fi
+	else
+		db_host=localhost
 	fi
 
 	if ! [ -z "$db_name" ]; then echo "Using DB name: $db_name"; fi
@@ -114,18 +116,32 @@ function parse_environment_variables() {
 # Wait up to 20 seconds for MySQL to become available
 #
 function wait_for_mysql() (
-	local host=${db_host:-localhost}
-	echo "Waiting for MySQL to become available on $host..."
-
+	echo "Waiting for MySQL to become available on $db_host..."
 	local timeout=20
 	while [ $timeout -gt 0 ]; do
-		local response=`mysqladmin --host=$host --user=UNKNOWN_MYSQL_USER ping 2>&1` && break
+		local response=`mysqladmin --host=$db_host --port=$db_port --user=UNKNOWN_MYSQL_USER ping 2>&1` && break
 		echo "$response" | grep -q "Access denied for user" && break
 		sleep 1
 		let timeout=${timeout}-1
 	done
-
+	if [ $timeout -eq 0 ]; then
+		echo "MySQL server could not be contacted."
+		exit 1
+	fi
 	echo "MySQL ready."
+
+	echo "Waiting for database '$db_name' to be ready..."
+	let timeout=20
+	while [ $timeout -gt 0 ]; do
+		mysql --host=$db_host --port=$db_port --user=$db_user --password=$db_pass --execute="use $db_name;" && break
+		sleep 1
+		let timeout=${timeout}-1
+	done
+	if [ $timeout -eq 0 ]; then
+		echo "MySQL server is up, but database '$db_name' is not accessible."
+		exit 1
+	fi
+	echo "Database ready."
 )
 
 #
