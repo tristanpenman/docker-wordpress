@@ -364,6 +364,8 @@ update_other_config
 
 run_postinstall_scripts
 
+chown -R www-data:www-data $DOCUMENT_ROOT
+
 # Pass through arguments to exec
 if [ $# -ge 1 ]; then
 	exec "$@"
