@@ -82,6 +82,8 @@ In addition to database configuration, you can also enable WordPress debug loggi
  * `WP_DEBUG_DISPLAY` (set to `true` to display all errors in the browser; default is the value of `$WP_DEBUG`)
  * `WP_DEBUG_LOG` (set to `true` to have all errors logged to the PHP error log; default is `false`)
 
+You can also disable external HTTP requests by setting `WP_HTTP_BLOCK_EXTERNAL` to `true.
+
 See the Docker Compose example below for an example of how these are set.
 
 ## Customisation ##

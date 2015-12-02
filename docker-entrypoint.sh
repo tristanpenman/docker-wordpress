@@ -227,6 +227,7 @@ function create_config_file() (
 	local wp_debug=
 	local wp_debug_display=
 	local wp_debug_log=
+	local wp_http_block_external=
 
 	if [[ "$WP_DEBUG" =~ ^on|y|yes|1|t|true|enabled$ ]]; then
 		wp_debug="define( 'WP_DEBUG', true );"
@@ -236,6 +237,10 @@ function create_config_file() (
 		if [[ "$WP_DEBUG_LOG" =~ ^on|y|yes|1|t|true|enabled$ ]]; then
 			wp_debug_log="define( 'WP_DEBUG_LOG', true );"
 		fi
+	fi
+
+	if [[ "$WP_HTTP_BLOCK_EXTERNAL" =~ ^on|y|yes|1|t|true|enabled$ ]]; then
+		wp_http_block_external="define( 'WP_HTTP_BLOCK_EXTERNAL', true );"
 	fi
 
 	if [ -z "$wp_debug" ]; then
