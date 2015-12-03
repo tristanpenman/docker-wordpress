@@ -39,6 +39,9 @@ alias wp="wp --path=$DOCUMENT_ROOT --allow-root"
 : ${WP_DEBUG_DISPLAY:=}
 : ${WP_DEBUG_LOG:=}
 
+# Optional environment variable to disable external HTTP requests
+: ${WP_HTTP_BLOCK_EXTERNAL:=}
+
 # Internal variables used to pass DB config between functions
 db_name=
 db_user=
