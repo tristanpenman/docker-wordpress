@@ -18,7 +18,7 @@ RUN apt-get update \
 VOLUME /var/www/html
 
 # Install wp-cli
-RUN curl -L https://github.com/wp-cli/wp-cli/releases/download/v0.20.1/wp-cli-0.20.1.phar -o /usr/local/bin/wp \
+RUN curl -L https://github.com/wp-cli/wp-cli/releases/download/v0.20.4/wp-cli-0.20.4.phar -o /usr/local/bin/wp \
 && chmod +x /usr/local/bin/wp
 
 # Replace the default apache2-foreground script with one that relies on apache2ctl, so
