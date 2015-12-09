@@ -21,6 +21,11 @@ VOLUME /var/www/html
 RUN curl -L https://github.com/wp-cli/wp-cli/releases/download/v0.20.1/wp-cli-0.20.1.phar -o /usr/local/bin/wp \
 && chmod +x /usr/local/bin/wp
 
+# Replace the default apache2-foreground script with one that relies on apache2ctl, so
+# that /etc/apache2/envvars can be used to configure the environment of the www-data user
+COPY bin/apache2-foreground /usr/local/bin/apache2-foreground
+RUN chmod +x /usr/local/bin/apache2-foreground
+
 # Set up entrypoint script
 ENV SCRIPTS_DIR /scripts
 RUN mkdir /scripts /scripts/pre-install.d /scripts/post-install.d
