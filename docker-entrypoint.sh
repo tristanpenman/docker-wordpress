@@ -232,11 +232,20 @@ function create_config_file() (
 	local wp_debug_log=
 	local wp_http_block_external=
 
+	# WordPress sets WP_DEBUG to 'false' by default. If we're overriding this value, we also want
+	# to check whether the WP_DEBUG_DISPLAY and WP_DEBUG_LOG constants should be set.
 	if [[ "$WP_DEBUG" =~ ^on|y|yes|1|t|true|enabled$ ]]; then
 		wp_debug="define( 'WP_DEBUG', true );"
+
+		# WordPress sets WP_DEBUG_DISPLAY to 'true' by default. We want to override the WP_DEBUG_DISPLAY
+		# constant if, and only if, a non-empty value has been provided and that value does not match
+		# one of our truthy values. The regex test would not be enough on its own here, as that would
+		# cause the constant to be set for empty values.
 		if [ "$WP_DEBUG_DISPLAY" ] && ! [[ "$WP_DEBUG_DISPLAY" =~ ^on|y|yes|1|t|true|enabled$ ]]; then
 			wp_debug_display="define( 'WP_DEBUG_DISPLAY', false );"
 		fi
+
+		# WordPress sets WP_DEBUG_LOG to 'false' by default
 		if [[ "$WP_DEBUG_LOG" =~ ^on|y|yes|1|t|true|enabled$ ]]; then
 			wp_debug_log="define( 'WP_DEBUG_LOG', true );"
 		fi
