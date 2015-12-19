@@ -68,18 +68,18 @@ postinstall_scripts_dir=${SCRIPTS_DIR}/post-install.d
 function parse_environment_variables() {
 	db_name=${WORDPRESS_DB_NAME:-${MYSQL_ENV_MYSQL_DATABASE:-wordpress}}
 
-	if ! [ -z "$WORDPRESS_DB_USER" ]; then
+	if [ "$WORDPRESS_DB_USER" ]; then
 		db_user=$WORDPRESS_DB_USER
-		if ! [ -z "WORDPRESS_DB_PASSWORD" ]; then
+		if [ "WORDPRESS_DB_PASSWORD" ]; then
 			db_pass=$WORDPRESS_DB_PASSWORD
 			db_pass_source=WORDPRESS_DB_PASSWORD
-		elif [ "$WORDPRESS_DB_USER" == "$MYSQL_ENV_MYSQL_USER" ] && ! [ -z "$MYSQL_ENV_MYSQL_PASSWORD" ]; then
+		elif [ "$WORDPRESS_DB_USER" == "$MYSQL_ENV_MYSQL_USER" ] && [ "$MYSQL_ENV_MYSQL_PASSWORD" ]; then
 			db_pass=$MYSQL_ENV_MYSQL_PASSWORD
 			db_pass_source=MYSQL_ENV_MYSQL_PASSWORD
 		fi
-	elif ! [ -z "$MYSQL_ENV_MYSQL_USER" ]; then
+	elif [ "$MYSQL_ENV_MYSQL_USER" ]; then
 		db_user=$MYSQL_ENV_MYSQL_USER
-		if ! [ -z "$MYSQL_ENV_MYSQL_PASSWORD" ]; then
+		if [ "$MYSQL_ENV_MYSQL_PASSWORD" ]; then
 			db_pass=$MYSQL_ENV_MYSQL_PASSWORD
 			db_pass_source=MYSQL_ENV_MYSQL_PASSWORD
 		fi
@@ -87,32 +87,32 @@ function parse_environment_variables() {
 		db_user=wordpress
 	fi
 
-	if ! [ -z "$WORDPRESS_DB_HOST"]; then
+	if [ "$WORDPRESS_DB_HOST"]; then
 		db_host=$WORDPRESS_DB_HOST
-		if ! [ -z "$MYSQL_PORT_3306_TCP_ADDR" ]; then
+		if [ "$MYSQL_PORT_3306_TCP_ADDR" ]; then
 			echo >&2 'warning: both WORDPRESS_DB_HOST and MYSQL_PORT_3306_TCP_ADDR found'
 			echo >&2 "  Connecting to WORDPRESS_DB_HOST ($WORDPRESS_DB_HOST)"
 			echo >&2 '  instead of the linked mysql container'
 		fi
-		if ! [ -z "$WORDPRESS_DB_PORT" ]; then
+		if [ "$WORDPRESS_DB_PORT" ]; then
 			db_port=$WORDPRESS_DB_PORT
-		elif ! [ -z "$MYSQL_PORT_3306_TCP_PORT" ] && [ "$WORDPRESS_DB_HOST" == "$MYSQL_PORT_3306_TCP_ADDR" ]; then
+		elif [ "$MYSQL_PORT_3306_TCP_PORT" ] && [ "$WORDPRESS_DB_HOST" == "$MYSQL_PORT_3306_TCP_ADDR" ]; then
 			db_port=$MYSQL_PORT_3306_TCP_PORT
 		fi
-	elif ! [ -z "$MYSQL_PORT_3306_TCP_ADDR" ]; then
+	elif [ "$MYSQL_PORT_3306_TCP_ADDR" ]; then
 		db_host=$MYSQL_PORT_3306_TCP_ADDR
-		if ! [ -z "$MYSQL_PORT_3306_TCP_PORT" ]; then
+		if [ "$MYSQL_PORT_3306_TCP_PORT" ]; then
 			db_port=$MYSQL_PORT_3306_TCP_PORT
 		fi
 	else
 		db_host=localhost
 	fi
 
-	if ! [ -z "$db_name" ]; then echo "Using DB name: $db_name"; fi
-	if ! [ -z "$db_host" ]; then echo "Using DB host: $db_host"; fi
-	if ! [ -z "$db_port" ]; then echo "Using DB port: $db_port"; fi
-	if ! [ -z "$db_user" ]; then echo "Using DB username: $db_user"; fi
-	if ! [ -z "$db_pass" ]; then echo "Using DB password from: \$$db_pass_source"; fi
+	if [ "$db_name" ]; then echo "Using DB name: $db_name"; fi
+	if [ "$db_host" ]; then echo "Using DB host: $db_host"; fi
+	if [ "$db_port" ]; then echo "Using DB port: $db_port"; fi
+	if [ "$db_user" ]; then echo "Using DB username: $db_user"; fi
+	if [ "$db_pass" ]; then echo "Using DB password from: \$$db_pass_source"; fi
 }
 
 #
@@ -181,23 +181,23 @@ function set_php_constant() (
 # constant has not been provided, then the previous value will be preseved.
 #
 function update_database_config() (
-	if ! [ -z "$db_host" ]; then
-		if [ -z "$db_port" ]; then
-			set_php_constant 'DB_HOST' "$db_host"
-		else
+	if [ "$db_host" ]; then
+		if [ "$db_port" ]; then
 			set_php_constant 'DB_HOST' "$db_host:$db_port"
+		else
+			set_php_constant 'DB_HOST' "$db_host"
 		fi
 	fi
 
-	if ! [ -z "$db_user" ]; then
+	if [ "$db_user" ]; then
 		set_php_constant 'DB_USER' "$db_user"
 	fi
 
-	if ! [ -z "$db_pass" ]; then
+	if [ "$db_pass" ]; then
 		set_php_constant 'DB_PASSWORD' "$db_pass"
 	fi
 
-	if ! [ -z "$db_name" ]; then
+	if [ "$db_name" ]; then
 		set_php_constant 'DB_NAME' "$db_name"
 	fi
 )
@@ -212,16 +212,16 @@ function update_database_config() (
 #
 function create_config_file() (
 	local wp_core_config_args="--dbname=$db_name"
-	if ! [ -z "$db_user" ]; then
+	if [ "$db_user" ]; then
 		wp_core_config_args="$wp_core_config_args --dbuser=$db_user"
 	fi
-	if ! [ -z "$db_pass" ]; then
+	if [ "$db_pass" ]; then
 		wp_core_config_args="$wp_core_config_args --dbpass=$db_pass"	
 	fi
-	if ! [ -z "$db_host" ]; then
+	if [ "$db_host" ]; then
 		wp_core_config_args="$wp_core_config_args --dbhost=$db_host"
-		if ! [ -z "$db_port" ]; then
-			wp_core_config_args="$wp_core_config_args:$db_port"
+		if [ "$db_port" ]; then
+			wp_core_config_args="${wp_core_config_args}:$db_port"
 		fi
 	fi
 
@@ -234,7 +234,7 @@ function create_config_file() (
 
 	if [[ "$WP_DEBUG" =~ ^on|y|yes|1|t|true|enabled$ ]]; then
 		wp_debug="define( 'WP_DEBUG', true );"
-		if ! [ -z "$WP_DEBUG_DISPLAY" ] && ! [[ "$WP_DEBUG_DISPLAY" =~ ^on|y|yes|1|t|true|enabled$ ]]; then
+		if [ "$WP_DEBUG_DISPLAY" ] && ! [[ "$WP_DEBUG_DISPLAY" =~ ^on|y|yes|1|t|true|enabled$ ]]; then
 			wp_debug_display="define( 'WP_DEBUG_DISPLAY', false );"
 		fi
 		if [[ "$WP_DEBUG_LOG" =~ ^on|y|yes|1|t|true|enabled$ ]]; then
@@ -246,15 +246,17 @@ function create_config_file() (
 		wp_http_block_external="define( 'WP_HTTP_BLOCK_EXTERNAL', true );"
 	fi
 
-	if [ -z "$wp_debug" ]; then
-		wp core config $wp_core_config_args
-	else
+	shopt -u nocasematch;
+
+	if [ "$wp_debug" ]; then
 		wp core config $wp_core_config_args \
 			--extra-php <<-PHP
 				$wp_debug
 				$wp_debug_display
 				$wp_debug_log
 				PHP
+	else
+		wp core config $wp_core_config_args
 	fi
 )
 
@@ -306,7 +308,7 @@ function run_preinstall_scripts() {
 		for script in ${preinstall_scripts_dir}/*
 		do
 			if [ -f $script ]; then
-				if [ -a $script ]; then
+				if [ -x $script ]; then
 					echo "Running ${script}..."
 					$script
 				else
@@ -330,7 +332,7 @@ function run_postinstall_scripts() {
 		for script in ${postinstall_scripts_dir}/*
 		do
 			if [ -f $script ]; then
-				if [ -a $script ]; then
+				if [ -x $script ]; then
 					echo "Running ${script}..."
 					$script
 				else
@@ -369,7 +371,7 @@ echo "  Scripts directory  (SCRIPTS_DIR):   $SCRIPTS_DIR"
 
 run_preinstall_scripts
 
-if ! [ -f ${DOCUMENT_ROOT}/index.php -a -f ${DOCUMENT_ROOT}/wp-includes/version.php ]; then
+if ! [ -f ${DOCUMENT_ROOT}/index.php ] || ! [ -f ${DOCUMENT_ROOT}/wp-includes/version.php ]; then
 	echo "WordPress not present in ${DOCUMENT_ROOT}."
 	wp core download --version=${WORDPRESS_VERSION:-latest}
 fi
