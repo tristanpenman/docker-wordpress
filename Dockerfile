@@ -12,6 +12,7 @@ RUN apt-get update \
 && docker-php-ext-install gd \
 && docker-php-ext-install mbstring \
 && docker-php-ext-install mysqli \
+&& docker-php-ext-install opcache \
 && apt-get clean \
 && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
