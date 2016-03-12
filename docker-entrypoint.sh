@@ -136,7 +136,8 @@ function wait_for_mysql() (
 	echo "Waiting for database '$db_name' to be ready..."
 	let timeout=20
 	while [ $timeout -gt 0 ]; do
-		mysql --host=$db_host --port=$db_port --user=$db_user --password=$db_pass --execute="use $db_name;" && break
+		local response=`mysql --host=$db_host --port=$db_port --user=$db_user --password=$db_pass --execute="use $db_name;" 2>&1` && break
+		echo "$response" | grep -q "Access denied for user" && break
 		sleep 1
 		let timeout=${timeout}-1
 	done
