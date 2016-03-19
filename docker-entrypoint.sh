@@ -26,6 +26,7 @@ alias wp="wp --path=$DOCUMENT_ROOT --allow-root"
 : ${WORDPRESS_DB_HOST:=}
 : ${WORDPRESS_DB_PORT:=}
 : ${WORDPRESS_DB_TABLE_PREFIX:=}
+: ${WORDPRESS_DB_VERIFICATION_QUERY:=}
 
 # Environment variables that might be set when linking to a MySQL container
 : ${MYSQL_ENV_MYSQL_USER:=}
@@ -49,6 +50,7 @@ db_host=
 db_port=
 db_pass=
 db_pass_source=
+db_verification_query=
 
 # Path to WordPress configuration
 config_path=${DOCUMENT_ROOT}/wp-config.php
@@ -108,6 +110,10 @@ function parse_environment_variables() {
 		db_host=localhost
 	fi
 
+	if [ "$WORDPRESS_DB_VERIFICATION_QUERY" ]; then
+		db_verification_query="${WORDPRESS_DB_VERIFICATION_QUERY}"
+	fi
+
 	if [ "$db_name" ]; then echo "Using DB name: $db_name"; fi
 	if [ "$db_host" ]; then echo "Using DB host: $db_host"; fi
 	if [ "$db_port" ]; then echo "Using DB port: $db_port"; fi
@@ -120,32 +126,49 @@ function parse_environment_variables() {
 #
 function wait_for_mysql() (
 	echo "Waiting for MySQL to become available on $db_host..."
-	local timeout=20
-	while [ $timeout -gt 0 ]; do
+	local retries=20
+	while [ $retries -gt 0 ]; do
 		local response=`mysqladmin --host=$db_host --port=$db_port --user=UNKNOWN_MYSQL_USER ping 2>&1` && break
 		echo "$response" | grep -q "Access denied for user" && break
 		sleep 1
-		let timeout=${timeout}-1
+		let retries=${retries}-1
 	done
-	if [ $timeout -eq 0 ]; then
+	if [ $retries -eq 0 ]; then
 		echo "MySQL server could not be contacted."
 		exit 1
 	fi
 	echo "MySQL ready."
 
+	local mysql_args="--host=$db_host --port=$db_port --user=$db_user --password=$db_pass"
+
 	echo "Waiting for database '$db_name' to be ready..."
-	let timeout=20
-	while [ $timeout -gt 0 ]; do
-		local response=`mysql --host=$db_host --port=$db_port --user=$db_user --password=$db_pass --execute="use $db_name;" 2>&1` && break
-		echo "$response" | grep -q "Access denied for user" && break
+	let retries=20
+	while [ $retries -gt 0 ]; do
+		mysql $mysql_args --execute="use ${db_name};" > /dev/null 2>&1 && break
 		sleep 1
-		let timeout=${timeout}-1
+		let retries=${retries}-1
 	done
-	if [ $timeout -eq 0 ]; then
+	if [ $retries -eq 0 ]; then
 		echo "MySQL server is up, but database '$db_name' is not accessible."
 		exit 1
 	fi
-	echo "Database ready."
+	echo "Database created."
+
+	if [ "$db_verification_query" ]; then
+		echo "About to verify database state using custom query: $db_verification_query"
+		echo "Waiting for custom query to succeed..."
+		let retries=20
+		while [ $retries -gt 0 ]; do
+			mysql $mysql_args --database=$db_name --execute="${db_verification_query};" > /dev/null 2>&1 && break
+			sleep 1
+			let retries=${retries}-1
+		done
+		if [ $retries -eq 0 ]; then
+			echo "Database is present, but database state could not be verified using custom query."
+			exit 1
+		fi
+		echo "Database state verified."
+	fi
 )
 
 #
