@@ -37,7 +37,6 @@ You can then start a WordPress container, configured to talk to the database cre
         -e WORDPRESS_DB_NAME=wordpress \
         -e WORDPRESS_DB_PASSWORD=wordpress \
         -e WORDPRESS_DB_USER=wordpress \
-        -e WORDPRESS_SITE_URL=http://localhost:8080 \
         tristanpenman/wordpress
 
 If you are using an image that you built locally, you would want to the replace the repository name 'tristanpenman/wordpress' with the name that you have chosen.
@@ -132,7 +131,6 @@ A convenient way to capture the configuration of your MySQL and WordPress images
        - WORDPRESS_DB_NAME=wordpress
        - WORDPRESS_DB_PASSWORD=wordpress
        - WORDPRESS_DB_USER=wordpress
-       - WORDPRESS_SITE_URL=http://localhost:8080
        - WP_DEBUG=true
        - WP_DEBUG_DISPLAY=false
        - WP_DEBUG_LOG=true
@@ -155,7 +153,7 @@ This image has been tested with Docker version 1.8.3, and will generally be test
 
 ### WP-CLI ###
 
-This image includes version 0.20.1 of WP-CLI.
+This image includes version 0.24.1 of WP-CLI.
 
 ## License ##
 
