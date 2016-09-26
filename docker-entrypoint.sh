@@ -89,7 +89,7 @@ function parse_environment_variables() {
 		db_user=wordpress
 	fi
 
-	if [ "$WORDPRESS_DB_HOST"]; then
+	if [ "$WORDPRESS_DB_HOST" ]; then
 		db_host=$WORDPRESS_DB_HOST
 		if [ "$MYSQL_PORT_3306_TCP_ADDR" ]; then
 			echo >&2 'warning: both WORDPRESS_DB_HOST and MYSQL_PORT_3306_TCP_ADDR found'
